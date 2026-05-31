@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { initAdmin } = require('./controllers/authController');
 
 const app = express();
+app.set('trust proxy', 1); // Trust Vercel / Render proxies for rate limiting
 
 // ─── Security Middleware ───────────────────────────────────────────────────────
 app.use(helmet());
