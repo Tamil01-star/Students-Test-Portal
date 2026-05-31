@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://students-test-portal-hu9p.vercel.app/api/:path*"
+    },
+    {
       "source": "/((?!assets/|favicon.svg|public/).*)",
       "destination": "/index.html"
     }
