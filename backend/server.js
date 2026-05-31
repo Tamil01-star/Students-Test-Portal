@@ -63,6 +63,7 @@ app.use((err, req, res, next) => {
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
+const { initDb } = require('./config/db');
 
 app.listen(PORT, async () => {
   console.log('');
@@ -74,8 +75,15 @@ app.listen(PORT, async () => {
   console.log(`🔗  Frontend URL: ${process.env.FRONTEND_URL}`);
   console.log('');
 
-  // Seed default admin account
-  await initAdmin();
+  try {
+    // 1. Initialize Database Schema
+    await initDb();
+    
+    // 2. Seed default admin account
+    await initAdmin();
+  } catch (err) {
+    console.error('❌ Failed to initialize database on startup:', err.message);
+  }
 });
 
 module.exports = app;

@@ -4,6 +4,7 @@ const fs = require('fs');
 let pool = null;
 let query = null;
 let dbType = 'sqlite';
+let initDb = null;
 
 const isProduction = process.env.NODE_ENV === 'production';
 const hasDbUrl = !!process.env.DATABASE_URL;
@@ -31,84 +32,82 @@ if (hasDbUrl) {
 
   // Initialize PostgreSQL tables if they don't exist
   const initPgDb = async () => {
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS users (
-          id SERIAL PRIMARY KEY,
-          user_id VARCHAR(50) UNIQUE NOT NULL,
-          name VARCHAR(100) NOT NULL,
-          email VARCHAR(100),
-          password TEXT NOT NULL,
-          role VARCHAR(20) NOT NULL DEFAULT 'student',
-          password_changed BOOLEAN DEFAULT false,
-          is_active BOOLEAN DEFAULT true,
-          created_by INT REFERENCES users(id) ON DELETE SET NULL,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100),
+        password TEXT NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'student',
+        password_changed BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        created_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
 
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS tests (
-          id SERIAL PRIMARY KEY,
-          title VARCHAR(200) NOT NULL,
-          subject VARCHAR(100) NOT NULL,
-          scheduled_date DATE NOT NULL,
-          start_time TIME NOT NULL,
-          end_time TIME NOT NULL,
-          created_by INT REFERENCES users(id) ON DELETE SET NULL,
-          is_active BOOLEAN DEFAULT true,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tests (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        subject VARCHAR(100) NOT NULL,
+        scheduled_date DATE NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        created_by INT REFERENCES users(id) ON DELETE SET NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
 
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS questions (
-          id SERIAL PRIMARY KEY,
-          test_id INT REFERENCES tests(id) ON DELETE CASCADE,
-          question_text TEXT NOT NULL,
-          option_a TEXT NOT NULL,
-          option_b TEXT NOT NULL,
-          option_c TEXT NOT NULL,
-          option_d TEXT NOT NULL,
-          correct_answer VARCHAR(5) NOT NULL CHECK (correct_answer IN ('a','b','c','d')),
-          marks INT DEFAULT 1,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS questions (
+        id SERIAL PRIMARY KEY,
+        test_id INT REFERENCES tests(id) ON DELETE CASCADE,
+        question_text TEXT NOT NULL,
+        option_a TEXT NOT NULL,
+        option_b TEXT NOT NULL,
+        option_c TEXT NOT NULL,
+        option_d TEXT NOT NULL,
+        correct_answer VARCHAR(5) NOT NULL CHECK (correct_answer IN ('a','b','c','d')),
+        marks INT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
 
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS test_enrollments (
-          id SERIAL PRIMARY KEY,
-          test_id INT REFERENCES tests(id) ON DELETE CASCADE,
-          student_id INT REFERENCES users(id) ON DELETE CASCADE,
-          enrolled_at TIMESTAMP DEFAULT NOW(),
-          UNIQUE(test_id, student_id)
-        )
-      `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS test_enrollments (
+        id SERIAL PRIMARY KEY,
+        test_id INT REFERENCES tests(id) ON DELETE CASCADE,
+        student_id INT REFERENCES users(id) ON DELETE CASCADE,
+        enrolled_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(test_id, student_id)
+      )
+    `);
 
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS test_submissions (
-          id SERIAL PRIMARY KEY,
-          test_id INT REFERENCES tests(id) ON DELETE CASCADE,
-          student_id INT REFERENCES users(id) ON DELETE CASCADE,
-          answers JSONB DEFAULT '[]',
-          score INT DEFAULT 0,
-          total_marks INT DEFAULT 0,
-          submitted_at TIMESTAMP,
-          is_submitted BOOLEAN DEFAULT false,
-          warning_count INT DEFAULT 0,
-          auto_submitted BOOLEAN DEFAULT false,
-          UNIQUE(test_id, student_id)
-        )
-      `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS test_submissions (
+        id SERIAL PRIMARY KEY,
+        test_id INT REFERENCES tests(id) ON DELETE CASCADE,
+        student_id INT REFERENCES users(id) ON DELETE CASCADE,
+        answers JSONB DEFAULT '[]',
+        score INT DEFAULT 0,
+        total_marks INT DEFAULT 0,
+        submitted_at TIMESTAMP,
+        is_submitted BOOLEAN DEFAULT false,
+        warning_count INT DEFAULT 0,
+        auto_submitted BOOLEAN DEFAULT false,
+        UNIQUE(test_id, student_id)
+      )
+    `);
 
-      console.log('✅ PostgreSQL database schema checked/initialized');
-    } catch (err) {
-      console.error('❌ Failed to initialize PostgreSQL schema:', err.message);
-    }
+    console.log('✅ PostgreSQL database schema checked/initialized');
   };
 
-  initPgDb();
+  initDb = async () => {
+    await initPgDb();
+  };
 
 } else {
   // === SQLite (Local Offline Development) ===
@@ -208,11 +207,10 @@ if (hasDbUrl) {
     });
   };
 
-  initSqliteDb().then(() => {
+  initDb = async () => {
+    await initSqliteDb();
     console.log('✅ SQLite database schema initialized');
-  }).catch((err) => {
-    console.error('❌ Failed to initialize SQLite schema:', err.message);
-  });
+  };
 
   query = (text, params = []) => {
     return new Promise((resolve, reject) => {
@@ -252,6 +250,6 @@ if (hasDbUrl) {
   };
 }
 
-module.exports = { query, pool, dbType };
+module.exports = { query, pool, dbType, initDb };
 
 
