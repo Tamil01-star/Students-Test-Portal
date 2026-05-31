@@ -12,7 +12,7 @@ const generateToken = (user) => {
       role: user.role,
       password_changed: user.password_changed,
     },
-    process.env.JWT_SECRET,
+    process.env.JWT_SECRET || 'classic_exam_portal_super_secret_jwt_key_2024',
     { expiresIn: '8h' }
   );
 };
