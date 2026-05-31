@@ -114,14 +114,21 @@ if (hasDbUrl) {
 } else {
   // === SQLite (Local Offline Development) ===
   let sqlite3 = null;
-  try {
-    const sqliteModuleName = 'sqlite3';
-    sqlite3 = require(sqliteModuleName).verbose();
-  } catch (err) {
-    console.error('❌ SQLite3 native module is not available in this environment:', err.message);
+  const isVercel = !!process.env.VERCEL;
+
+  if (!isVercel) {
+    try {
+      const sqliteModuleName = 'sqlite3';
+      sqlite3 = require(sqliteModuleName).verbose();
+    } catch (err) {
+      console.error('❌ SQLite3 native module is not available in this environment:', err.message);
+    }
+  } else {
+    console.error('❌ SQLite is disabled on Vercel. You must configure the DATABASE_URL environment variable to use PostgreSQL.');
   }
   
   if (sqlite3) {
+
     const dbPath = path.resolve(__dirname, '../database.db');
     console.log(`🔌 No DATABASE_URL detected. Fallback to local SQLite at ${dbPath}...`);
 
