@@ -326,9 +326,82 @@ const createStudent = async (req, res) => {
   }
 };
 
+/**
+ * PUT /api/staff/tests/:test_id
+ * Update an existing test
+ */
+const updateTest = async (req, res) => {
+  try {
+    const { test_id } = req.params;
+    const { title, subject, scheduled_date, start_time, end_time } = req.body;
+
+    if (!title || !subject || !scheduled_date || !start_time || !end_time) {
+      return res.status(400).json({ success: false, message: 'All fields are required.' });
+    }
+
+    const testCheck = await query('SELECT id FROM tests WHERE id = $1 AND created_by = $2', [test_id, req.user.id]);
+    if (testCheck.rows.length === 0) {
+      return res.status(403).json({ success: false, message: 'Test not found or access denied.' });
+    }
+
+    const result = await query(
+      `UPDATE tests SET title = $1, subject = $2, scheduled_date = $3, start_time = $4, end_time = $5
+       WHERE id = $6 RETURNING *`,
+      [title.trim(), subject.trim(), scheduled_date, start_time, end_time, test_id]
+    );
+
+    return res.json({ success: true, message: 'Test updated successfully.', data: result.rows[0] });
+  } catch (error) {
+    console.error('Update test error:', error);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/**
+ * PUT /api/staff/questions/:id
+ * Update an existing question
+ */
+const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question_text, option_a, option_b, option_c, option_d, correct_answer, marks } = req.body;
+
+    if (!question_text || !option_a || !option_b || !option_c || !option_d || !correct_answer) {
+      return res.status(400).json({ success: false, message: 'All question fields are required.' });
+    }
+
+    if (!['a', 'b', 'c', 'd'].includes(correct_answer.toLowerCase())) {
+      return res.status(400).json({ success: false, message: 'Correct answer must be a, b, c, or d.' });
+    }
+
+    const check = await query(
+      `SELECT q.id FROM questions q
+       JOIN tests t ON t.id = q.test_id
+       WHERE q.id = $1 AND t.created_by = $2`,
+      [id, req.user.id]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ success: false, message: 'Question not found or access denied.' });
+    }
+
+    const result = await query(
+      `UPDATE questions 
+       SET question_text = $1, option_a = $2, option_b = $3, option_c = $4, option_d = $5, correct_answer = $6, marks = $7
+       WHERE id = $8 RETURNING *`,
+      [question_text, option_a, option_b, option_c, option_d, correct_answer.toLowerCase(), marks || 1, id]
+    );
+
+    return res.json({ success: true, message: 'Question updated.', data: result.rows[0] });
+  } catch (error) {
+    console.error('Update question error:', error);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
 module.exports = {
   getStaffStats, createTest, getMyTests,
-  addQuestion, getQuestions, deleteQuestion,
+  addQuestion, getQuestions, deleteQuestion, updateTest, updateQuestion,
   getAllStudents, enrollStudents, getEnrolledStudents,
   getResults, createStudent,
 };

@@ -8,6 +8,7 @@ import LoadingSpinner from './components/LoadingSpinner'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import ChangePassword from './pages/ChangePassword'
+import ProfilePage from './pages/ProfilePage'
 
 // Management
 import ManagementDashboard from './pages/management/Dashboard'
@@ -54,6 +55,11 @@ export default function App() {
         <Route path="/change-password" element={
           <ProtectedRoute>
             <ChangePassword />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         } />
 

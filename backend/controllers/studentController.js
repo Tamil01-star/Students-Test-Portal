@@ -8,8 +8,8 @@ const getStudentStats = async (req, res) => {
   try {
     const studentId = req.user.id;
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().split(' ')[0];
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     // Upcoming tests (enrolled but not yet submitted, scheduled in future)
     const upcoming = await query(
@@ -56,8 +56,8 @@ const getMyTests = async (req, res) => {
   try {
     const studentId = req.user.id;
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().split(' ')[0];
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     const result = await query(
       `SELECT t.id, t.title, t.subject, t.scheduled_date, t.start_time, t.end_time,
@@ -76,7 +76,8 @@ const getMyTests = async (req, res) => {
     // Compute status for each test
     const tests = result.rows.map((test) => {
       let status = 'upcoming';
-      const testDate = test.scheduled_date.toISOString ? test.scheduled_date.toISOString().split('T')[0] : String(test.scheduled_date).split('T')[0];
+      const d = new Date(test.scheduled_date);
+      const testDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
       if (test.is_submitted) {
         status = 'completed';
@@ -86,7 +87,7 @@ const getMyTests = async (req, res) => {
         status = 'expired';
       }
 
-      return { ...test, status };
+      return { ...test, status, _debug: { testDate, today, startTime: test.start_time, endTime: test.end_time, currentTime } };
     });
 
     return res.json({ success: true, data: tests });
@@ -105,8 +106,8 @@ const getTestForAttend = async (req, res) => {
     const { test_id } = req.params;
     const studentId = req.user.id;
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().split(' ')[0];
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     // Check enrollment
     const enrolled = await query(
@@ -133,7 +134,8 @@ const getTestForAttend = async (req, res) => {
     }
 
     const test = testResult.rows[0];
-    const testDate = test.scheduled_date.toISOString ? test.scheduled_date.toISOString().split('T')[0] : String(test.scheduled_date).split('T')[0];
+    const d = new Date(test.scheduled_date);
+    const testDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     // Check time window
     if (testDate !== today || test.start_time > currentTime || test.end_time < currentTime) {

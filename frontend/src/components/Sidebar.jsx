@@ -13,6 +13,7 @@ const navConfig = {
     { to: '/management/create-staff', icon: MdPersonAdd, label: 'Create Staff' },
     { to: '/management/staff-list', icon: MdPeople, label: 'Staff List' },
     { to: '/management/student-list', icon: MdSchool, label: 'Student Records' },
+    { to: '/profile', icon: MdPerson, label: 'My Profile' },
   ],
   staff: [
     { to: '/staff/dashboard', icon: MdDashboard, label: 'Dashboard' },
@@ -20,11 +21,13 @@ const navConfig = {
     { to: '/staff/tests', icon: MdList, label: 'My Tests' },
     { to: '/staff/results', icon: MdBarChart, label: 'Results' },
     { to: '/staff/create-student', icon: MdGroupAdd, label: 'Add Student' },
+    { to: '/profile', icon: MdPerson, label: 'My Profile' },
   ],
   student: [
     { to: '/student/dashboard', icon: MdDashboard, label: 'Dashboard' },
     { to: '/student/tests', icon: MdQuiz, label: 'My Tests' },
     { to: '/student/results', icon: MdBarChart, label: 'My Results' },
+    { to: '/profile', icon: MdPerson, label: 'My Profile' },
   ],
 }
 

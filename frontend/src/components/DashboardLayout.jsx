@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import { MdMenu, MdNotifications, MdPerson } from 'react-icons/md'
 import { useAuth } from '../context/AuthContext'
@@ -51,10 +52,19 @@ const DashboardLayout = ({ children, title }) => {
             </button>
 
             {/* User avatar */}
-            <div style={{
+            <Link to="/profile" style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '6px 14px', borderRadius: 10, background: '#f9fafb',
               border: '1.5px solid #e5e7eb', cursor: 'pointer',
+              textDecoration: 'none', transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = '#1e3a5f';
+              e.currentTarget.style.background = '#f0f4ff';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.background = '#f9fafb';
             }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%',
@@ -65,7 +75,7 @@ const DashboardLayout = ({ children, title }) => {
                 <MdPerson />
               </div>
               <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{user?.name}</span>
-            </div>
+            </Link>
           </div>
         </header>
 

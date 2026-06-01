@@ -16,8 +16,36 @@ export default function MyTests() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
 
+  const fetchTests = () => {
+    api.get('/student/tests').then(r => {
+      // Evaluate status on the client side using the browser's exact timezone
+      const testsWithLocalStatus = r.data.data.map(t => {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        
+        const d = new Date(t.scheduled_date);
+        const testDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        let derivedStatus = 'upcoming';
+        if (t.is_submitted) {
+          derivedStatus = 'completed';
+        } else if (testDate === today && t.start_time <= currentTime && t.end_time >= currentTime) {
+          derivedStatus = 'active';
+        } else if (testDate < today || (testDate === today && t.end_time < currentTime)) {
+          derivedStatus = 'expired';
+        }
+        
+        return { ...t, status: derivedStatus, _originalStatus: t.status };
+      });
+      setTests(testsWithLocalStatus);
+    }).catch(console.error).finally(() => setLoading(false))
+  }
+
   useEffect(() => {
-    api.get('/student/tests').then(r => setTests(r.data.data)).catch(console.error).finally(() => setLoading(false))
+    fetchTests()
+    const interval = setInterval(fetchTests, 30000) // Auto-refresh every 30 seconds
+    return () => clearInterval(interval)
   }, [])
 
   const filtered = filter === 'all' ? tests : tests.filter(t => t.status === filter)
@@ -64,12 +92,15 @@ export default function MyTests() {
                   <div style={{ width: 4, height: 60, borderRadius: 4, background: sc.color, flexShrink: 0 }} />
 
                   <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f' }}>{t.title}</h3>
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                        {sc.label}
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f' }}>{t.title}</h3>
+                      <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.color }}>{sc.label}</span>
                     </div>
+                    {t._debug && (
+                      <div style={{ background: '#f3f4f6', padding: '4px 8px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace', color: '#ef4444', marginBottom: 6 }}>
+                        DEBUG: testDate={t._debug.testDate} today={t._debug.today} | start={t._debug.startTime} now={t._debug.currentTime} end={t._debug.endTime}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: 16, color: '#6b7280', fontSize: 13, flexWrap: 'wrap' }}>
                       <span>📚 {t.subject}</span>
                       <span>📅 {new Date(t.scheduled_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>

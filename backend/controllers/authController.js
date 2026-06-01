@@ -139,6 +139,50 @@ const changePassword = async (req, res) => {
 };
 
 /**
+ * POST /api/auth/update-profile
+ * Update user's profile details (name, email)
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const userId = req.user.id;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Name is required.' });
+    }
+
+    // Update user details in the DB
+    await query(
+      'UPDATE users SET name = $1, email = $2 WHERE id = $3',
+      [name.trim(), email ? email.trim() : null, userId]
+    );
+
+    // Fetch updated user details
+    const result = await query('SELECT * FROM users WHERE id = $1', [userId]);
+    const updatedUser = result.rows[0];
+
+    const newToken = generateToken(updatedUser);
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully.',
+      token: newToken,
+      user: {
+        id: updatedUser.id,
+        user_id: updatedUser.user_id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        password_changed: updatedUser.password_changed,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+  }
+};
+
+/**
  * Seed default management account on server startup
  * Default credentials: MGMT001 / Admin@1234
  */
@@ -159,4 +203,4 @@ const initAdmin = async () => {
   }
 };
 
-module.exports = { login, changePassword, initAdmin };
+module.exports = { login, changePassword, updateProfile, initAdmin };

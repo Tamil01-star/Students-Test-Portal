@@ -4,7 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { requireStaff, requirePasswordChanged } = require('../middleware/roleCheck');
 const {
   getStaffStats, createTest, getMyTests,
-  addQuestion, getQuestions, deleteQuestion,
+  addQuestion, getQuestions, deleteQuestion, updateTest, updateQuestion,
   getAllStudents, enrollStudents, getEnrolledStudents,
   getResults, createStudent,
 } = require('../controllers/staffController');
@@ -15,8 +15,10 @@ router.use(authenticate, requireStaff, requirePasswordChanged);
 router.get('/stats', getStaffStats);
 router.post('/create-test', createTest);
 router.get('/tests', getMyTests);
+router.put('/tests/:test_id', updateTest);
 router.post('/tests/:test_id/questions', addQuestion);
 router.get('/tests/:test_id/questions', getQuestions);
+router.put('/questions/:id', updateQuestion);
 router.delete('/questions/:id', deleteQuestion);
 router.get('/students', getAllStudents);
 router.post('/tests/:test_id/enroll', enrollStudents);

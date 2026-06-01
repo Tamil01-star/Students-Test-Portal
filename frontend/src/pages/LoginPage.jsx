@@ -115,7 +115,7 @@ export default function LoginPage() {
                   type="text"
                   value={form.user_id}
                   onChange={e => setForm({ ...form, user_id: e.target.value })}
-                  placeholder="e.g. STF001, REG2024001, MGMT001"
+                  placeholder="e.g. STF001, REG2024001"
                   style={{
                     width: '100%', padding: '12px 14px 12px 40px', borderRadius: 10,
                     border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none',
@@ -188,14 +188,6 @@ export default function LoginPage() {
             </button>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </form>
-
-          <div style={{
-            marginTop: 28, padding: '16px', borderRadius: 10,
-            background: '#f0f4ff', border: '1px solid #dbeafe',
-          }}>
-            <p style={{ fontSize: 12, color: '#1e40af', fontWeight: 500, marginBottom: 6 }}>🔑 Default Management Login:</p>
-            <p style={{ fontSize: 12, color: '#374151' }}>User ID: <strong>MGMT001</strong> | Password: <strong>Admin@1234</strong></p>
-          </div>
         </motion.div>
       </div>
     </div>

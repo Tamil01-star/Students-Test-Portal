@@ -7,10 +7,19 @@ import api from '../../api/axios'
 export default function MyTests() {
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
+  
+  // Edit test state
+  const [editingTest, setEditingTest] = useState(null)
+  const [editForm, setEditForm] = useState({ title: '', subject: '', scheduled_date: '', start_time: '', end_time: '' })
+  const [updating, setUpdating] = useState(false)
+  const [editError, setEditError] = useState('')
 
-  useEffect(() => {
+  const fetchTests = () => {
+    setLoading(true)
     api.get('/staff/tests').then(r => setTests(r.data.data)).catch(console.error).finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { fetchTests() }, [])
 
   const getStatus = (t) => {
     const today = new Date().toISOString().split('T')[0]
@@ -19,6 +28,36 @@ export default function MyTests() {
     if (testDate === today) return { label: 'Today', color: '#10b981', bg: '#d1fae5' }
     return { label: 'Completed', color: '#6b7280', bg: '#f3f4f6' }
   }
+
+  const openEditModal = (t) => {
+    setEditError('')
+    setEditingTest(t.id)
+    setEditForm({
+      title: t.title,
+      subject: t.subject,
+      scheduled_date: new Date(t.scheduled_date).toISOString().split('T')[0],
+      start_time: t.start_time,
+      end_time: t.end_time
+    })
+  }
+
+  const handleUpdate = async (e) => {
+    e.preventDefault()
+    setEditError('')
+    if (!editForm.title || !editForm.subject || !editForm.scheduled_date || !editForm.start_time || !editForm.end_time) {
+      setEditError('All fields are required.'); return
+    }
+    if (editForm.start_time >= editForm.end_time) { setEditError('End time must be after start time.'); return }
+    setUpdating(true)
+    try {
+      await api.put(`/staff/tests/${editingTest}`, editForm)
+      setEditingTest(null)
+      fetchTests()
+    } catch (err) { setEditError(err.response?.data?.message || 'Failed to update test.') }
+    finally { setUpdating(false) }
+  }
+
+  const inp = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: 13, outline: 'none', fontFamily: 'Inter', background: '#fff' }
 
   return (
     <DashboardLayout title="My Tests">
@@ -66,6 +105,9 @@ export default function MyTests() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => openEditModal(t)} style={{
+                      padding: '8px 14px', borderRadius: 8, background: '#f3f4f6', color: '#374151', fontSize: 13, fontWeight: 500, border: '1px solid #e5e7eb', cursor: 'pointer'
+                    }}>⚙️ Edit</button>
                     <Link to={`/staff/tests/${t.id}/questions`} style={{
                       padding: '8px 14px', borderRadius: 8, background: '#f0f4ff', color: '#1e3a5f', fontSize: 13, fontWeight: 500, border: '1px solid #dbeafe',
                     }}>📝 Questions</Link>
@@ -82,6 +124,47 @@ export default function MyTests() {
           </div>
         )}
       </div>
+
+      {editingTest && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 500, boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 20 }}>Edit Test Details</h3>
+            {editError && <div style={{ background: '#fee2e2', borderRadius: 8, padding: '10px', color: '#991b1b', fontSize: 13, marginBottom: 16 }}>⚠️ {editError}</div>}
+            <form onSubmit={handleUpdate}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#374151', marginBottom: 5 }}>Test Title</label>
+                <input type="text" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} style={inp} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#374151', marginBottom: 5 }}>Subject</label>
+                <input type="text" value={editForm.subject} onChange={e => setEditForm({ ...editForm, subject: e.target.value })} style={inp} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#374151', marginBottom: 5 }}>Scheduled Date</label>
+                <input type="date" value={editForm.scheduled_date} onChange={e => setEditForm({ ...editForm, scheduled_date: e.target.value })} style={inp} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#374151', marginBottom: 5 }}>Start Time</label>
+                  <input type="time" value={editForm.start_time} onChange={e => setEditForm({ ...editForm, start_time: e.target.value })} style={inp} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#374151', marginBottom: 5 }}>End Time</label>
+                  <input type="time" value={editForm.end_time} onChange={e => setEditForm({ ...editForm, end_time: e.target.value })} style={inp} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit" disabled={updating} style={{ flex: 1, padding: '12px', borderRadius: 8, background: updating ? '#9ca3af' : '#1e3a5f', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: updating ? 'not-allowed' : 'pointer' }}>
+                  {updating ? 'Updating...' : 'Save Changes'}
+                </button>
+                <button type="button" onClick={() => setEditingTest(null)} style={{ padding: '12px 20px', borderRadius: 8, background: '#f3f4f6', color: '#374151', fontSize: 14, fontWeight: 500, border: 'none', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
