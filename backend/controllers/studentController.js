@@ -134,8 +134,19 @@ const getTestForAttend = async (req, res) => {
     }
 
     const test = testResult.rows[0];
+    
+    // Force IST time calculation
+    const utcDate = new Date();
+    const now = new Date(utcDate.getTime() + (utcDate.getTimezoneOffset() * 60000) + (3600000 * 5.5)); // IST is UTC+5:30
+    
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
     const d = new Date(test.scheduled_date);
-    const testDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // test.scheduled_date from Postgres is 2026-05-31T18:30:00Z for IST June 1st.
+    // Convert this strictly to IST date string
+    const d_ist = new Date(d.getTime() + (d.getTimezoneOffset() * 60000) + (3600000 * 5.5));
+    const testDate = `${d_ist.getFullYear()}-${String(d_ist.getMonth() + 1).padStart(2, '0')}-${String(d_ist.getDate()).padStart(2, '0')}`;
 
     // Check time window
     if (testDate !== today || test.start_time > currentTime || test.end_time < currentTime) {
