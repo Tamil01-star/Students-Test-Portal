@@ -105,9 +105,6 @@ const getTestForAttend = async (req, res) => {
   try {
     const { test_id } = req.params;
     const studentId = req.user.id;
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     // Check enrollment
     const enrolled = await query(
