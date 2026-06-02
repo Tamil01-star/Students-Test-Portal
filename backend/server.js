@@ -40,6 +40,38 @@ app.use('/api/auth/', authLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// ─── Database Initialization Middleware (for Serverless/Vercel compatibility) ──
+let dbInitialized = false;
+let dbInitializationPromise = null;
+
+const ensureDbInitialized = async (req, res, next) => {
+  if (dbInitialized) {
+    return next();
+  }
+  if (!dbInitializationPromise) {
+    const { initDb } = require('./config/db');
+    dbInitializationPromise = (async () => {
+      try {
+        await initDb();
+        await initAdmin();
+        dbInitialized = true;
+      } catch (err) {
+        console.error('❌ Database initialization failed:', err.message);
+        dbInitializationPromise = null; // allow retrying
+        throw err;
+      }
+    })();
+  }
+  try {
+    await dbInitializationPromise;
+    next();
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Database initialization failed.' });
+  }
+};
+
+app.use(ensureDbInitialized);
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'ok', timestamp: new Date().toISOString(), environment: process.env.NODE_ENV });
@@ -62,29 +94,32 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal server error.' });
 });
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
-const { initDb } = require('./config/db');
+// ─── Start Server (Only when not running on Vercel) ───────────────────────────
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  const { initDb } = require('./config/db');
 
-app.listen(PORT, async () => {
-  console.log('');
-  console.log('╔══════════════════════════════════════════════╗');
-  console.log('║     Classic Examination Portal — Backend     ║');
-  console.log('╚══════════════════════════════════════════════╝');
-  console.log(`🚀  Server running on http://localhost:${PORT}`);
-  console.log(`🌍  Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗  Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log('');
+  app.listen(PORT, async () => {
+    console.log('');
+    console.log('╔══════════════════════════════════════════════╗');
+    console.log('║     Classic Examination Portal — Backend     ║');
+    console.log('╚══════════════════════════════════════════════╝');
+    console.log(`🚀  Server running on http://localhost:${PORT}`);
+    console.log(`🌍  Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗  Frontend URL: ${process.env.FRONTEND_URL}`);
+    console.log('');
 
-  try {
-    // 1. Initialize Database Schema
-    await initDb();
-    
-    // 2. Seed default admin account
-    await initAdmin();
-  } catch (err) {
-    console.error('❌ Failed to initialize database on startup:', err.message);
-  }
-});
+    try {
+      // 1. Initialize Database Schema
+      await initDb();
+      
+      // 2. Seed default admin account
+      await initAdmin();
+      dbInitialized = true;
+    } catch (err) {
+      console.error('❌ Failed to initialize database on startup:', err.message);
+    }
+  });
+}
 
 module.exports = app;
